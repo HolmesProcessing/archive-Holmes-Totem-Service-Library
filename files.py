@@ -1,6 +1,42 @@
 import mmap
+import tempfile
+import shutil
+import os
 
-class mmapFile (object):
+
+
+class TempAnalysisFile(object):
+    """
+    Temporary Analysis File class.
+    """
+
+    def __init__(self, obj):
+        self.obj = obj
+        #print(obj)
+
+    def __enter__(self):
+        """
+        Create the temporary file on disk.
+        """
+
+        tempdir = tempfile.mkdtemp()
+        self.directory = tempdir
+        tfile = os.path.join(tempdir, self.obj)
+        with open(tfile, "wb") as f:
+            f.write(open(self.obj).read().encode())
+        return tfile
+
+    def __exit__(self, type, value, traceback):
+        """
+        Cleanup temporary file on disk.
+        """
+
+        if os.path.isdir(self.directory):
+            shutil.rmtree(self.directory)
+
+
+
+class LargeFileReader (object):
     """
     File-like (read-only) object trimmed for low memory footprint.
     Reading and finding does not advance the offset.
