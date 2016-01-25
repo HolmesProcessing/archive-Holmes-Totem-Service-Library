@@ -68,7 +68,10 @@ class ServiceMeta():
                 print("%s is not configured in %s!" % (needed, cfg))
     
     def __getattr__ (self, key):
-        return self.data.get(key)
+        data = self.data.get(key)
+        if not data:
+            data = ""
+        return data
     
     def __iter__ (self):
         for key in self.data:
@@ -143,9 +146,10 @@ class ResultSet (object):
     Output:
         {"key3":{"key1":"value","key2":"value"}}
     """
-    __slots__ = ["data"]
+    __slots__ = ["data", "size"]
     def __init__(self):
         self.data = {}
+        self.size = 0
     def add(self, key, value):
         if key in self.data:
             if isinstance(self.data[key], list):
@@ -157,15 +161,16 @@ class ResultSet (object):
                 self.data[key].append(value)
         else:
             self.data[key] = value
+        self.size += 1
 
 
-class BigFile (object):
+class mmapFile (object):
     """
     File-like (read-only) object trimmed for low memory footprint.
     Reading and finding does not advance the offset.
     Usage:
         # open
-        file = BigFile("/filepath")
+        file = mmapFile("/filepath")
         # find
         start = file.find("needle")
         # access data, still offset 0
@@ -235,7 +240,7 @@ class BigFile (object):
             return self.read(key.start, key.start+1)
     
     def subfile (self, start):
-        class SubFile (BigFile):
+        class mmapSubFile (mmapFile):
             __slots__ = ["file","datamap","size","offset"]
             # lightweight subtype of BigFile offering adjusted offset
             def __init__ (self, file, datamap, start, size):
@@ -247,7 +252,7 @@ class BigFile (object):
                 pass  # remove close ability
             def subfile (self, start):
                 pass  # remove subfile ability
-        return SubFile(self.file, self.datamap, self.offset+start, self.size)
+        return mmapSubFile(self.file, self.datamap, self.offset+start, self.size)
     
     # provide standard functions
     def __len__ (self):
