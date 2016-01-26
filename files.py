@@ -42,7 +42,7 @@ class LargeFileReader (object):
     Reading and finding does not advance the offset.
     Usage:
         # open
-        file = mmapFile("/filepath")
+        file = LargeFileReader("/filepath")
         # find
         start = file.find("needle")
         # access data, still offset 0
@@ -52,11 +52,11 @@ class LargeFileReader (object):
         # find a needle somewhere after the offset, relative to the offset
         position = subfile.find("second needle")
         # adjust offset in the subfile to after the previous find
-        subfile.adjust(position+1)
+        subfile.seek_relative(position+1)
     """
     __slots__ = ["file","datamap","size","offset"]
     def __init__ (self, filename):
-        self.file     = open(filename, "br")
+        self.file     = open(filename, "rb")
         self.datamap  = mmap.mmap(self.file.fileno(), 0, access=mmap.ACCESS_READ)
         self.offset   = 0
         self.size     = self.datamap.size()
@@ -112,9 +112,9 @@ class LargeFileReader (object):
             return self.read(key.start, key.start+1)
     
     def subfile (self, start):
-        class mmapSubFile (mmapFile):
+        class LargeFileSubReader (LargeFileReader):
             __slots__ = ["file","datamap","size","offset"]
-            # lightweight subtype of BigFile offering adjusted offset
+            # lightweight subtype of LargeFileReader offering adjusted offset
             def __init__ (self, file, datamap, start, size):
                 self.file     = file
                 self.datamap  = datamap
@@ -124,7 +124,7 @@ class LargeFileReader (object):
                 pass  # remove close ability
             def subfile (self, start):
                 pass  # remove subfile ability
-        return mmapSubFile(self.file, self.datamap, self.offset+start, self.size)
+        return LargeFileSubReader(self.file, self.datamap, self.offset+start, self.size)
     
     # provide standard functions
     def __len__ (self):

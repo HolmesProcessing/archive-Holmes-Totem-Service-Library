@@ -9,71 +9,73 @@ else:
     configparser = ConfigParser
 
 
-class ServiceMeta():
+class StructDict (dict):
+    def __getattr__ (self, key):
+        data = self.get(key)
+        if not data:
+            data = ""
+        return data
+
+
+class ServiceConfig (object):
     """
     Class for storing metadata for a service.
     Metadata are read from an INI style configuration file.
     Example INI:
-        [service]
-        ServiceName         = HelloWorld
-        ServiceVersion      = 1.0
-        ServiceDescription  = ./DESCRIPTION
-        ServiceConfig       = ./service.conf
-        ServiceCopyright    = ./COPYRIGHT
-        ServiceLicense      = ./LICENSE
-
-        [object]
-        ObjectCategory      = None
-        ObjectType          = None
+        [metadata]
+        Name        = HelloWorld
+        Version     = 1.0
+        Description = ./DESCRIPTION
+        Copyright   = ./COPYRIGHT
+        License     = ./LICENSE
+        
+        [Settings]
+        Port        = 8080
+        InfoURL     = /
+        AnalysisURL = /helloworld  # results in /helloworld/SAMPLEID parsing
     """
     
     needed_meta_data = [
-        "ServiceName",
-        "ServiceVersion",
-        "ServiceDescription",
-        "ServiceConfig",
-        "ServiceCopyright",
-        "ServiceLicense",
-        
-        "ObjectCategory",
-        "ObjectType",
+        "metadata.name",
+        "metadata.version",
+        "metadata.description",
+        "metadata.copyright",
+        "metadata.license",
     ]
 
-    def __init__(self, cfg="./META"):
+    def __init__(self, cfg="./service.conf"):
         parser = configparser.ConfigParser()
-        # avoid case insensitivity for keys
-        parser.optionxform = str
+        # to avoid case insensitivity for keys:
+        # parser.optionxform = str
         self.data = {}
         parser.read(cfg)
-        # get values from any section
-        # TODO: should there be treatment for specific sections?
-        # - [metadata]
-        # - [config]
-        # ? (metadata and config could be in the same file this way)
         for section in parser.sections():
+            if not section in self.data:
+                self.data[section] = StructDict()
             for (key, value) in parser.items(section):
                 path = False
-                if value.startswith("./") or value.startswith("/"):
+                if section=="metadata" and (value.startswith("./") or value.startswith("/")):
                     path = value
                 if path and os.path.isfile(path):
                     with open(path) as file:
                         value = file.read()
-                self.data[key] = value
+                self.data[section][key] = value
         
-        for needed in ServiceMeta.needed_meta_data:
-            if self.data.get(needed) is None:
+        for needed in ServiceConfig.needed_meta_data:
+            section, key = needed.split(".")
+            if self.data.get(section) is None or self.data.get(section).get(key) is None:
                 print("%s is not configured in %s!" % (needed, cfg))
     
     def __getattr__ (self, key):
         data = self.data.get(key)
         if not data:
-            data = ""
+            # return empty StructDict so config.section.key does not error out
+            data = StructDict()
         return data
     
     def __iter__ (self):
         for key in self.data:
             yield (key, self.data[key])
-
 
 
 class ServiceRequestError (Exception):
@@ -96,7 +98,6 @@ class ServiceRequestError (Exception):
         yield ("error", self.error)
     def __getitem__ (self, key):
         return getattr(self,key)
-
 
 
 class ServiceResultSet (object):
@@ -128,5 +129,3 @@ class ServiceResultSet (object):
         else:
             self.data[key] = value
         self.size += 1
-
-
