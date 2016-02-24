@@ -100,6 +100,8 @@ class ServiceRequestError (Exception):
         return getattr(self,key)
 
 
+class ResultSetException (ServiceRequestError):
+    pass
 class ServiceResultSet (object):
     """
     Light weight result set class.
@@ -109,23 +111,65 @@ class ServiceResultSet (object):
         subset.add("key1","value")
         subset.add("key2","value")
         resultset.add("key3",subset)
-        self.write(resultset)
+        self.write(resultset.data)
+        
+        alternatively, subsets can be skipped and added directly:
+        resultset.add("key_dim1","key_dim2",...,"key_dimN",value)
+        
+        also objects can be added directly:
+        resultset.add({"key1":val1,"key2":val2})
+        
     Output:
         {"key3":{"key1":"value","key2":"value"}}
+        
+        if endless nesting is used:
+        {"key_dim1":{"key_dim2":{...."key_dimN":value....}}}
+        
+        or as for objects:
+        {"key1":val1, "key2":val2}
     """
     __slots__ = ["data", "size"]
-    def __init__(self):
-        self.data = {}
-        self.size = 0
-    def add(self, key, value):
-        if key in self.data:
-            if isinstance(self.data[key], list):
-                self.data[key].append(value)
-            else:
-                cpy = self.data[key]
-                self.data[key] = []
-                self.data[key].append(cpy)
-                self.data[key].append(value)
+    
+    def __init__(self, data=False, size=False):
+        if data and size:
+            self.data = data
+            self.size = size
         else:
-            self.data[key] = value
-        self.size += 1
+            self.data = {}
+            self.size = 0
+    
+    def add(self, *args):
+        l = len(args)
+        if l == 1 and isinstance(args[0], dict):
+            self._add_dict(args[0])
+        elif l > 1:
+            self._add_args(self.data, args)
+        else:
+            return
+    
+    # do not call
+    def _add_dict (self, obj):
+        for (key, val) in obj.items():
+            self._add_args(self.data, [key, val])
+    
+    # do not call
+    def _add_args (self, _dict, args):
+        key = args[0]
+        val = args[1:]
+        if len(val) > 1:
+            if not (key in _dict):
+                _dict[key] = {}
+            if not isinstance(_dict[key], dict):
+                raise ResultSetException(500,"Key={} is not a dict".format(key))
+            self._add_args(_dict[key], val)
+        else:
+            if not (key in _dict):
+                _dict[key] = val[0]
+            elif isinstance(_dict[key], list):
+                _dict[key].append(val[0])
+            else:
+                tval = _dict[key]
+                _dict[key] = []
+                _dict[key].append(tval)
+                _dict[key].append(val[0])
+            self.size += 1
