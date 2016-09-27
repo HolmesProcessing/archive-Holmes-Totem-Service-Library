@@ -120,17 +120,4 @@ run-tests-helper:
     @echo "\033[31m==-- Run Python3 Tests: --==\033[0m"
     @cd src/$(project)/python3 && python3 -m unittest -v testing/*.py
     @echo ""
-
-    @echo "\033[31m==-- Run Go Test-App: --==\033[0m"
-    @$(go) build holmeslibrary-test.go
-    ./holmeslibrary-test
-    @rm holmeslibrary-test
-    @echo ""
-
-    @echo "\033[31m==-- Run Python3 Test-App: --==\033[0m"
-    @if [ -e "holmeslibrary" ]; then rm holmeslibrary 2>/dev/null; fi
-    @ln -s src/$(project) holmeslibrary
-    python3 holmeslibrary-test.py
-    @rm holmeslibrary
-    @echo ""
 ```
