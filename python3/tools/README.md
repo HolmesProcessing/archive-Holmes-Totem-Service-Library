@@ -50,9 +50,13 @@ General usage is very simple. Create a `Storage` object, create `StorageSamples`
 and have `Storage` submit these.
 
 ```python
-storage = Storage(address="127.0.0.1", user_id="1")
+storage = Storage(address="http://127.0.0.1:8016", user_id="1")
 sample = StorageSample(
+    // specify either filepath or filecontents
+    // (if filecontents exists filepath is ignored)
+    filepath="/path/to/hello_world.txt",
     filecontents=b"Hello World!",
+
     source="Unknown",
     name="hello_world.txt",
     date=rfc3339.now().isoformat(),

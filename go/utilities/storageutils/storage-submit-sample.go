@@ -62,7 +62,7 @@ func (s *Storage) SubmitSample(sample *StorageSample) error {
 	}
 	err = json.Unmarshal(bytes, &rj)
 	if err != nil {
-		return err
+		return errors.New(err.Error() + " -- " + string(bytes))
 	}
 
 	// Seems like it is a success after all.

@@ -6,20 +6,31 @@ import (
 	"fmt"
 	"testing"
 	"time"
+
+	"bytes"
+	"net/http"
 )
 
 // Run some tests on the storageutils package.
 var (
-	storage_addr string   = "http://127.0.0.1:8016"
-	storage      *Storage = &Storage{storage_addr, "user-1"}
-	fileBytes    []byte   = []byte("hello world!")
-	fileName     string   = "testfile.txt"
-	fileDate     string   = time.Now().Format(time.RFC3339)
+	storage_prot string = "http://"
+	storage_addr string = "127.0.0.1"
+	storage_port int    = 8017
+	storage      *Storage
+	fileBytes    []byte = []byte("hello world!")
+	fileName     string = "testfile.txt"
+	fileDate     string = time.Now().Format(time.RFC3339)
 	sha256string string
 )
 
 func TestStorageutils(T *testing.T) {
 	T.Log("=== Testing module storageutils ===")
+	go LaunchServer(storage_addr, &storage_port)
+	time.Sleep(100 * time.Millisecond)
+	storage = &Storage{
+		fmt.Sprintf("%s%s:%d", storage_prot, storage_addr, storage_port),
+		"user-1",
+	}
 
 	// Run test cases.
 	x := true &&
@@ -39,7 +50,6 @@ func testSubmitSample(T *testing.T) bool {
 	sha256string = fmt.Sprintf("%x", hSHA256.Sum(nil))
 
 	sample := &StorageSample{
-		FilePath:     fileName,
 		FileContents: fileBytes,
 		Source:       "Unknown",
 		Name:         fileName,
@@ -80,4 +90,34 @@ func slicesEqual(a, b []byte) bool {
 		}
 	}
 	return true
+}
+
+/*
+Launch a mini webserver that returns some static data
+(for self contained testing)
+*/
+func SubmitHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte(`{"ResponseCode":1,"Failure":""}`))
+}
+
+func GetHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/octet-stream")
+	http.ServeContent(w, r, "", time.Now(), bytes.NewReader(fileBytes))
+}
+
+func RequestHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
+		GetHandler(w, r)
+
+	} else if r.Method == "PUT" {
+		SubmitHandler(w, r)
+
+	} else {
+		http.NotFound(w, r)
+	}
+}
+
+func LaunchServer(addr string, port *int) {
+	http.HandleFunc("/samples/", RequestHandler)
+	fmt.Println(http.ListenAndServe(fmt.Sprintf("%s:%d", addr, *port), nil))
 }

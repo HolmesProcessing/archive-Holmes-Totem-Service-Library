@@ -23,12 +23,15 @@ func check (err error) {
 
 func main () {
     storage := &storageutils.Storage{
-        Address: "http://127.0.0.1:8080",
+        Address: "http://127.0.0.1:8016",
         UserID: "1",
     }
     sample := &storageutils.StorageSample{
+        // specify either FilePath or FileContents
+        // (if FileContents exists FilePath is ignored)
         FilePath:     "testfile.txt",
         FileContents: []byte("hello world\n"),
+
         Source:       "Unknown",
         Name:         "testfile.txt",
         Date:         time.Now().Format(time.RFC3339),

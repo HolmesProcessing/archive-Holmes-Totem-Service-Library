@@ -32,7 +32,7 @@ class StorageSample (object):
     def getContent(self):
         if not self.filecontents:
             with open(self.filepath, "rb") as file:
-                self.filecontents = file.read(-1)
+                self.filecontents = file.read()
         return self.filecontents
 
     def sha256(self):

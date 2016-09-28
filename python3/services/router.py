@@ -1,16 +1,15 @@
 # imports for tornado
 import tornado
 from tornado import web, httpserver, ioloop
-from python3.services.configuration import Metadata
 
 # imports for info output
 import os
 
 
 class DummyHandler(tornado.web.RequestHandler):
-    def get(self):
-        #filename = self.get_argument("obj", strip=False)
-        pass
+    #def get(self):
+    #filename = self.get_argument("obj", strip=False)
+    pass
 
 
 def CreateInfoHandler(metadata):
